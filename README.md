@@ -21,5 +21,5 @@ O br_uf_infos_no_carac.csv contém os seguintes campos para cada UF:
 
 ## Execução de scripts
 
-- Python: Ajustar local do arquivo a ser importado e inserir suas configurações do banco Mysql
+- Python: Ajustar local do arquivo a ser importado e inserir suas configurações do banco Mysql (necessario criar tabelas antes script insert.sql)
 - Sql: Conectar ao banco MySql e executar o script
