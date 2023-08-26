@@ -1,46 +1,57 @@
 import csv
 import mysql.connector
+import time
 
-# Configurações do banco de dados MySQL - insira a credenciais do seu bd aqui:
+# Configurações do banco de dados MySQL
 config = {
-    'user': '',
-    'password': '',
-    'host': '',
-    'port': '',    
+    'user': 'bernardo_root_01',
+    'password': 'kirbis-deNgyw-0monge',
+    'host': 'db4free.net',
+    'port': '3306',    
     'raise_on_warnings': True
 }
 
-# Nome do arquivo CSV a ser lido
-arquivo_csv = './/br_uf_infos_no_carac.csv' # inserir o local do arquivo
+arquivo_csv = './/br_uf_infos_no_carac.csv'
 
+print("Abrindo o arquivo CSV...")
 # Abre o arquivo CSV e realiza a leitura dos dados
 with open(arquivo_csv, 'r', newline='', encoding='utf-8') as arquivo:
-    leitor_csv = csv.reader(arquivo, delimiter=';')
+    leitor_csv = csv.DictReader(arquivo, delimiter=';')
     
-    # Ignora o cabeçalho do arquivo CSV
-    next(leitor_csv)
-    
+    print("Conectando ao banco de dados...")
     # Percorre as linhas do arquivo CSV e insere os dados no banco de dados
     conn = mysql.connector.connect(**config)
     cursor = conn.cursor()
 
-    query = "INSERT INTO accu_weather.br_citys_ibge_info (cod_uf, cod_localidade, cod_municipio, uf, municipio, regiao, porte, capital) " \
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+    query = "INSERT INTO financialdb001.br_citys_ibge_info (cod_uf, cod_localidade, cod_municipio, uf, municipio, regiao, porte, capital) " \
+            "VALUES (%(cod_uf)s, %(cod_localidade)s, %(cod_municipio)s, %(uf)s, %(municipio)s, %(regiao)s, %(porte)s, %(capital)s)"
     
+    batch_size = 1000  # Número de inserções por lote
+    batch = []
+    total_inserted = 0
+
+    print("Inserindo dados no banco de dados...")
+    start_time = time.time()
     for linha in leitor_csv:
-        cod_uf = linha[0]
-        cod_localidade = linha[1]
-        cod_municipio = linha[2]
-        uf = linha[3]
-        municipio = linha[4]
-        regiao = linha[5]
-        porte = linha[6]
-        capital = linha[7]
-        cursor.execute(query, (cod_uf, cod_localidade, cod_municipio, uf, municipio, regiao, porte, capital))
+        batch.append(linha)
         
-        # Chama a função para inserir os dados no banco de dados
-        # inserir_dados(cod_localidade, cod_municipio, uf, municipio, regiao, porte, capital)
-    conn.commit()
+        if len(batch) >= batch_size:
+            cursor.executemany(query, batch)
+            conn.commit()
+            total_inserted += len(batch)
+            batch = []
+            print(f"Inseridos {total_inserted}...")
+
+    if batch:
+        cursor.executemany(query, batch)
+        conn.commit()
+        total_inserted += len(batch)
+        print(f"Inseridos {total_inserted} registros ao final.")
+
     cursor.close()
     conn.close()
-print('Dados inseridos no banco de dados.')
+
+end_time = time.time()
+processing_time = end_time - start_time
+print(f'Processo concluído: {total_inserted} registros inseridos.')
+print(f'Tempo total de processamento: {processing_time:.2f} segundos.')
